@@ -7,3 +7,5 @@ authors = [ "Stephen Judkins <stephen.judkins@gmail.com>" ]
 [dependencies]
 gfx = "0.14"
 nom = "^2.2"
+byteorder = "1"
+sha1 = "0.2.0"

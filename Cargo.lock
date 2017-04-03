@@ -2,8 +2,10 @@
 name = "ootw"
 version = "0.0.1"
 dependencies = [
+ "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nom 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -14,6 +16,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "bitflags"
 version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "byteorder"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -54,11 +61,18 @@ name = "nom"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
+[[package]]
+name = "sha1"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
 [metadata]
 "checksum bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "72cd7314bd4ee024071241147222c706e80385a1605ac7d4cd2fcc339da2ae46"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
+"checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"
 "checksum draw_state 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1596fcda8b7c1ec84f68d5d09dad7ad01266a1793214d257deb1f6f7d98e8185"
 "checksum gfx 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)" = "24667dd5df455d86b0d3ec0a485b0b564ec2231133443750a81dc99cc149eb86"
 "checksum gfx_core 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "26e377413fef1fe06baba45a72d4dedc146bf68dc98caac0de914589ac6d8d69"
 "checksum log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "5141eca02775a762cc6cd564d8d2c50f67c0ea3a372cbf1c51592b3e029e10ad"
 "checksum nom 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4fefff3588e844f63a54ec7b91872b8526ec06ffb760559744d032ccea4df002"
+"checksum sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cc30b1e1e8c40c121ca33b86c23308a090d19974ef001b4bf6e61fd1a0fb095c"

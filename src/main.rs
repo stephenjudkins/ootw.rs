@@ -6,6 +6,11 @@ use nom::Err;
 
 use std::fs::File;
 use std::io::Read;
+use std::io::Seek;
+use std::io::SeekFrom;
+
+extern crate byteorder;
+use byteorder::{ReadBytesExt, WriteBytesExt, BigEndian, LittleEndian};
 
 #[derive(Debug)]
 pub enum ResourceType {
@@ -66,6 +71,146 @@ named!(mem_list<Vec<MemEntry>>,
   )
 );
 
+fn unpack(contents: Vec<u8>) -> Vec<u8> {
+    fn shiftBit(uc: &mut UnpackCtx, CF: u32)->u32 {
+    	let rCF = uc.bits & 1;
+    	uc.bits >>= 1;
+    	if CF != 0 {
+    		uc.bits |= 0x80000000;
+    	}
+    	return rCF;
+    }
+
+    fn nextBit(uc: &mut UnpackCtx)->u32 {
+    	let mut CF = shiftBit(uc, 0);
+    	if uc.bits == 0 {
+    		uc.bits = READ_BE_UINT32(&uc.contents, uc.src);
+            if uc.src > 4 { uc.src -= 4 } else {uc.src = 0};
+    		uc.crc ^= uc.bits;
+    		CF = shiftBit(uc, 1);
+    	}
+    	return CF;
+    }
+    //
+    fn getBits(uc: &mut UnpackCtx, num_bits: u8) -> u16  {
+    	let mut c = 0 as u16;
+        for x in 0..num_bits {
+    		c <<= 1;
+    		if nextBit(uc) != 0 {
+    			c |= 1;
+    		}
+    	}
+    	return c;
+    }
+    //
+    fn unpackHelper1(uc: &mut UnpackCtx, num_bits: u8, add_count: u8) {
+    	let count = getBits(uc, num_bits) + (add_count as u16) + 1;
+    	uc.datasize -= count as u32;
+
+        for x in 0..count {
+            let bits = getBits(uc, 8) as u8;
+            uc.dst.push(bits);
+    	}
+    }
+    fn unpackHelper2(uc: &mut UnpackCtx, num_bits: u8) {
+    	let i = getBits(uc, num_bits);
+    	let count = uc.size + 1;
+    	uc.datasize -= count as u32;
+
+        for x in 0 .. count {
+            let byte = uc.dst[uc.dst.len() - (i as usize)];
+            uc.dst.push(byte);
+    	}
+    }
+    //
+
+    struct UnpackCtx {
+        size: usize,
+        datasize: u32,
+        crc: u32,
+        bits: u32,
+        src: usize,
+        contents: Vec<u8>,
+        dst: Vec<u8>
+    }
+
+    fn READ_BE_UINT32(vec: &Vec<u8>, pos: usize) -> u32 {
+        use std::io::Cursor;
+        let mut cursor = Cursor::new(vec);
+        cursor.set_position(pos as u64);
+        return cursor.read_u32::<BigEndian>().unwrap();
+    }
+
+    // bool delphine_unpack(uint8_t *dst, const uint8_t *src, int len) {
+    let crc1 = READ_BE_UINT32(&contents, contents.len() - 8);
+    let bits = READ_BE_UINT32(&contents, contents.len() - 12);
+    let crc = crc1 ^ bits;
+    let datasize = READ_BE_UINT32(&contents, contents.len() - 4);
+
+    let out = Vec::with_capacity(datasize as usize);
+
+        let mut uc = UnpackCtx {
+            src: contents.len() - 16,
+            datasize: datasize,
+            size: 0,
+            bits: bits,
+            crc: crc,
+            contents: contents,
+            dst: out
+        };
+
+        while uc.datasize > 0 {
+    		if nextBit(&mut uc) == 0 {
+    			uc.size = 1;
+    			if nextBit(&mut uc) == 0 {
+    				unpackHelper1(&mut uc, 3, 0);
+    			} else {
+    				unpackHelper2(&mut uc, 8);
+    			}
+    		} else {
+    			let c = getBits(&mut uc, 2);
+    			if c == 3 {
+    				unpackHelper1(&mut uc, 8, 8);
+    			} else if c < 2 {
+    				uc.size = (c + 2) as usize;
+    				unpackHelper2(&mut uc, (c + 9) as u8);
+    			} else {
+    				uc.size = getBits(&mut uc, 8) as usize;
+    				unpackHelper2(&mut uc, 12);
+    			}
+    		}
+    }
+
+    if uc.crc != 0 {
+        panic!("Expected {} == 0", uc.crc);
+    }
+
+
+
+  uc.dst.reverse();
+  return uc.dst;
+}
+
+fn contents(entry: &MemEntry) -> Vec<u8> {
+  let bank_file_name = format!("data/bank{:02X}", entry.bank_num);
+  let mut f = File::open(bank_file_name).unwrap();
+
+  f.seek(SeekFrom::Start(entry.bank_pos as u64));
+
+  let mut packed = vec![0; entry.packed_size as usize];
+  f.read_exact(&mut packed).unwrap();
+
+  if entry.packed_size == entry.unpacked_size {
+    return packed;
+  } else {
+    return unpack(packed);
+  }
+}
+
+
+
+extern crate sha1;
+
 fn main() {
   let mut memlist_file = File::open("data/memlist.bin").unwrap();
   let mut buffer = Vec::new();
@@ -75,6 +220,12 @@ fn main() {
 
   for entry in list {
     println!("{:?}", entry);
+    let data = contents(&entry);
+
+    let mut m = sha1::Sha1::new();
+    m.update(&data);
+
+    println!("{:?} / {}", data.len(), m.digest().to_string());
   }
 
 }
